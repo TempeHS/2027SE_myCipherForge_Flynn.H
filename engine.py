@@ -132,6 +132,74 @@ def phase2_decrypt(text, key):
     return result
 
 
+def phase3_encrypt(text, key):
+    """
+    Phase 3: Password-Dependent — Variable shifts based on password.
+
+    Each character is shifted by a different amount determined by
+    the corresponding character in the repeating password.
+    This destroys frequency patterns!
+
+    Args:
+        text: The string to transform (already Phase 1+2 encrypted)
+        key: Dictionary containing encryption settings
+
+    Returns:
+        The password-encrypted string
+    """
+    # Get password from key (default to "SECRET" if not specified)
+
+    password = key.get("password", "SECRET")
+
+    result = ""
+
+    for i, char in enumerate(text):
+        if 32 <= ord(char) <= 126:
+            password_char = password[i % len(password)]
+            password_shift = ord(password_char) % 95
+
+            position = ord(char) - 32
+            new_position = (position + password_shift) % 95
+            result += chr(new_position + 32)
+        else:
+            result += char
+    return result
+
+
+def phase3_decrypt(text, key):
+    """
+    Phase 3: Reverse the password-dependent encryption.
+
+    CRITICAL: Must use the SAME password that was used for encryption!
+    Wrong password = garbage output.
+
+    Args:
+        text: The encrypted string
+        key: Dictionary with the SAME password used for encryption
+
+    Returns:
+        The decrypted string (if password is correct)
+    """
+    password = key.get("password", "SECRET")
+
+    result = ""
+
+    for i, char in enumerate(text):
+        if 32 <= ord(char) <= 126:
+            # Get same password character for this position
+            password_char = password[i % len(password)]
+            password_shift = ord(password_char) % 95
+
+            # SUBTRACT the shift to reverse encryption
+            position = ord(char) - 32
+            new_position = (position - password_shift) % 95
+            result += chr(new_position + 32)
+        else:
+            result += char
+
+    return result
+
+
 def encrypt(text, key):
     """
     CipherForge Master Encryption — Applies all 5 phases.
@@ -152,8 +220,8 @@ def encrypt(text, key):
     # Phase 2: Transposition — change WHERE characters are
     result = phase2_encrypt(result, key)
 
-    # TODO: Phase 3 — Key-Dependent
-    # result = phase3_encrypt(result, key)
+    # Phase 3: Password-Dependent — destroy frequency patterns
+    result = phase3_encrypt(result, key)
 
     # TODO: Phase 4 — Noise Injection
     # result = phase4_encrypt(result, key)
@@ -187,8 +255,8 @@ def decrypt(text, key):
     # TODO: Phase 4 — Reverse Noise Injection
     # result = phase4_decrypt(result, key)
 
-    # TODO: Phase 3 — Reverse Key-Dependent
-    # result = phase3_decrypt(result, key)
+    # Phase 3: Reverse Password-Dependent
+    result = phase3_decrypt(result, key)
 
     # Phase 2: Reverse Transposition
     result = phase2_decrypt(result, key)
