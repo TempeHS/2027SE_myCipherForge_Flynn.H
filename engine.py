@@ -200,6 +200,85 @@ def phase3_decrypt(text, key):
     return result
 
 
+def phase4_encrypt(text, key):
+
+    interval = key.get("noise_interval", 3)
+
+    noise = key.get("noise_char", "~")
+
+    result = ""
+    count = 0
+
+    for char in text:
+        result += char
+        count += 1
+        if count % interval == 0:
+            result += noise
+
+    return result
+
+
+def phase4_decrypt(text, key):
+    """Remove noise characters at their known positions."""
+    interval = key.get("noise_interval", 3)
+
+    result = ""
+    real_count = 0
+    i = 0
+
+    while i < len(text):
+        result += text[i]
+        real_count += 1
+        i += 1
+
+        if real_count % interval == 0 and i < len(text):
+            i += 1
+
+    return result
+
+
+def phase5_encrypt(text, key):
+
+    shift = key.get("shift", 4)
+    result = ""
+
+    for i, char in enumerate(text):
+        position = ord(char) - 32
+
+        if i % 2 == 0:
+            new_position = (position + shift) % 95
+
+        else:
+            new_position = (position - shift) % 95
+
+        new_position += 32
+
+        result += chr(new_position)
+
+    return result
+
+
+def phase5_decrypt(text, key):
+
+    shift = key.get("shift", 4)
+    result = ""
+
+    for i, char in enumerate(text):
+        position = ord(char) - 32
+
+        if i % 2 == 0:
+            new_position = (position - shift) % 95
+
+        else:
+            new_position = (position + shift) % 95
+
+        new_position += 32
+
+        result += chr(new_position)
+
+    return result
+
+
 def encrypt(text, key):
     """
     CipherForge Master Encryption — Applies all 5 phases.
@@ -223,11 +302,11 @@ def encrypt(text, key):
     # Phase 3: Password-Dependent — destroy frequency patterns
     result = phase3_encrypt(result, key)
 
-    # TODO: Phase 4 — Noise Injection
-    # result = phase4_encrypt(result, key)
+    # Phase 4: Noise injection (add decoy characters)
+    result = phase4_encrypt(result, key)
 
-    # TODO: Phase 5 — Wild Card
-    # result = phase5_encrypt(result, key)
+    # Phase 5 — Wild Card
+    result = phase5_encrypt(result, key)
 
     return result
 
@@ -249,11 +328,11 @@ def decrypt(text, key):
     """
     result = text
 
-    # TODO: Phase 5 — Reverse Wild Card (first!)
-    # result = phase5_decrypt(result, key)
+    # Phase 5 — Reverse Wild Card (first!)
+    result = phase5_decrypt(result, key)
 
-    # TODO: Phase 4 — Reverse Noise Injection
-    # result = phase4_decrypt(result, key)
+    # Phase 4: Remove noise characters
+    result = phase4_decrypt(result, key)
 
     # Phase 3: Reverse Password-Dependent
     result = phase3_decrypt(result, key)
